@@ -1,2 +1,0 @@
-# VinsLearning
-tasks for Vins
