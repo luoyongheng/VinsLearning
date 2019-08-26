@@ -1,0 +1,82 @@
+cmake_minimum_required(VERSION 3.10)
+project(catkin_ws)
+
+set(CMAKE_CXX_STANDARD 11)
+
+include_directories(src/code_utils/include)
+include_directories(src/code_utils/include/code_utils)
+include_directories(src/code_utils/include/code_utils/cv_utils)
+include_directories(src/code_utils/include/code_utils/cv_utils/dlt)
+include_directories(src/code_utils/include/code_utils/cv_utils/pnp)
+include_directories(src/code_utils/include/code_utils/math_utils)
+include_directories(src/code_utils/include/code_utils/sys_utils)
+include_directories(src/imu_utils/src)
+include_directories(src/imu_utils/src/acc_lib)
+include_directories(src/imu_utils/src/gyr_lib)
+include_directories(src/vio_sim/src)
+
+add_executable(catkin_ws
+        src/code_utils/include/code_utils/cv_utils/dlt/dlt.h
+        src/code_utils/include/code_utils/cv_utils/pnp/linearpnp.h
+        src/code_utils/include/code_utils/cv_utils/pnp/nonlinearpnp.h
+        src/code_utils/include/code_utils/cv_utils/pnp/pnp.h
+        src/code_utils/include/code_utils/cv_utils/pnp/utils.h
+        src/code_utils/include/code_utils/cv_utils/cv_type.hpp
+        src/code_utils/include/code_utils/cv_utils/randomcolor.h
+        src/code_utils/include/code_utils/cv_utils/scalartodata.h
+        src/code_utils/include/code_utils/math_utils/acos_fast.h
+        src/code_utils/include/code_utils/math_utils/math_utils.h
+        src/code_utils/include/code_utils/math_utils/Polynomial.h
+        src/code_utils/include/code_utils/sys_utils/cvmat_file_io.hpp
+        src/code_utils/include/code_utils/sys_utils/eigen_file_io.hpp
+        src/code_utils/include/code_utils/sys_utils/float_equal.hpp
+        src/code_utils/include/code_utils/sys_utils/printcolor.hpp
+        src/code_utils/include/code_utils/sys_utils/tic_toc.h
+        src/code_utils/include/code_utils/sys_utils/timeinseconds.hpp
+        src/code_utils/include/code_utils/backward.hpp
+        src/code_utils/include/code_utils/cv_utils.h
+        src/code_utils/include/code_utils/eigen_utils.h
+        src/code_utils/include/code_utils/ros_utils.h
+        src/code_utils/src/cv_utils/dlt/dlt.cpp
+        src/code_utils/src/cv_utils/pnp/linearpnp.cpp
+        src/code_utils/src/cv_utils/pnp/nonlinearpnp.cpp
+        src/code_utils/src/cv_utils/pnp/pnp.cpp
+        src/code_utils/src/math_utils/Polynomial.cpp
+        src/code_utils/src/cv_utils.cc
+        src/code_utils/src/mat_io_test.cpp
+        src/code_utils/src/poly_test.cpp
+        src/code_utils/src/sumpixel_test.cpp
+        src/imu_utils/scripts/all_of_draw_allan.m
+        src/imu_utils/scripts/all_of_draw_allan_acc.m
+        src/imu_utils/scripts/allan_with_degree.m
+        src/imu_utils/scripts/avg_of_all_sensors.m
+        src/imu_utils/scripts/avg_of_all_sensors_acc.m
+        src/imu_utils/scripts/draw_allan.m
+        src/imu_utils/scripts/ideal_allan.m
+        src/imu_utils/src/acc_lib/allan_acc.cpp
+        src/imu_utils/src/acc_lib/allan_acc.h
+        src/imu_utils/src/acc_lib/fitallan_acc.cpp
+        src/imu_utils/src/acc_lib/fitallan_acc.h
+        src/imu_utils/src/gyr_lib/allan_gyr.cpp
+        src/imu_utils/src/gyr_lib/allan_gyr.h
+        src/imu_utils/src/gyr_lib/fitallan_gyr.cpp
+        src/imu_utils/src/gyr_lib/fitallan_gyr.h
+        src/imu_utils/src/imu_an.cpp
+        src/imu_utils/src/type.h
+        src/imu_utils/src/utils.h
+        src/kalibr_allan/bagconvert/src/main.cpp
+        src/kalibr_allan/matlab/functions/allan_v3/allan.m
+        src/kalibr_allan/matlab/functions/allan_v3/allanv1_71.m
+        src/kalibr_allan/matlab/functions/gen_chart.m
+        src/kalibr_allan/matlab/SCRIPT_allan_matparallel.m
+        src/kalibr_allan/matlab/SCRIPT_noise_conversion.m
+        src/kalibr_allan/matlab/SCRIPT_process_results.m
+        src/vio_sim/src/gener_alldata.cpp
+        src/vio_sim/src/imu.cpp
+        src/vio_sim/src/imu.h
+        src/vio_sim/src/param.cpp
+        src/vio_sim/src/param.h
+        src/vio_sim/src/utilities.cpp
+        src/vio_sim/src/utilities.h
+        src/CMakeLists.txt
+        src/readme.md)
