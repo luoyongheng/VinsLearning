@@ -1,4 +1,6 @@
 #include "feature_tracker.h"
+#include <opencv2/core/types.hpp>
+//#define harris
 
 int FeatureTracker::n_id = 0;
 
@@ -132,6 +134,7 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
         rejectWithF();
         //ROS_DEBUG("set mask begins");
         TicToc t_m;
+#ifdef harris
         setMask();//非极大值抑制？？
         //ROS_DEBUG("set mask costs %fms", t_m.toc());
 
@@ -150,13 +153,186 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
         }
         else
             n_pts.clear();
+#else
+
         //ROS_DEBUG("detect feature costs: %fms", t_t.toc());
 
         //ROS_DEBUG("add feature begins");
         TicToc t_a;
+////////////////////////////begin/////////////////////////////////////
+        vector<cv::KeyPoint> kp;
+        const float W=30;
+        //fast特征点提取
+
+        const int nDesiredFeatures = MAX_CNT - forw_pts.size();
+        if(nDesiredFeatures>0)
+        {
+            const int nCols = int(COL/W);//21
+            const int nRows = int(ROW/W);//16
+            const int nCells = nCols*nRows;
+
+            const int nFeatureEachCell = ceil(float(nDesiredFeatures)/nCells);
+            vector<vector<vector<cv::KeyPoint> > > cellKeyPoints(nRows, vector<vector<cv::KeyPoint> >(nCols));
+
+            //计算每个窗口的大小
+            const int wCell = COL/nCols;//30
+            const int hCell = ROW/nRows;//30
+
+            vector<vector<int>> nTotal(nRows,vector<int>(nCols));
+            vector<vector<bool>> bNoMore(nRows,vector<bool>(nCols,false));
+            vector<vector<int>> nToRetain(nRows,vector<int>(nCols));
+            int nNoMore = 0;
+            int nToDistribute = 0;
+
+
+            for(int i=0; i<nRows; i++)
+            {
+                //每个窗口纵向的范围
+                const int iniY =i*hCell;
+                int maxY = iniY+hCell;
+                //出了图片的有效区域
+//                if(iniY>=maxBorderY-3)
+//                    continue;
+                //超出了边界的话就使用图像的边界作为边界
+//                if(maxY>maxBorderY)
+//                    maxY = maxBorderY;
+
+                for(int j=0; j<nCols; j++)
+                {
+                    //计算每列的位置
+                    //每个窗口横向的范围
+                    const int iniX =j*wCell;
+                    int maxX = iniX+wCell;
+                    //出了横向范围
+//                    if(iniX>=maxBorderX-6)
+//                        continue;
+                    //超了横向范围，就使用图像的边界作为窗口的边界
+//                    if(maxX>maxBorderX)
+//                        maxX = maxBorderX;
+                    //计算FAST关键点
+                    //vector<cv::KeyPoint> vKeysCell;
+                    //对每一个窗口都计算FAST角点
+                    cellKeyPoints[i][j].reserve(nFeatureEachCell*5);
+                    FAST(forw_img.rowRange(iniY,maxY).colRange(iniX,maxX),
+                         cellKeyPoints[i][j],iniThFAST,true);
+
+                    if(cellKeyPoints[i][j].size()<=3)
+                    {
+                        cellKeyPoints[i][j].clear();
+                        FAST(forw_img.rowRange(iniY,maxY).colRange(iniX,maxX),cellKeyPoints[i][j],minThFAST,true);
+                    }
+
+                    //HarrisResponses(cellImage,cellKeyPoints[i][j], 7, HARRIS_K);
+                    const int nKeys = cellKeyPoints[i][j].size();
+                    nTotal[i][j] = nKeys;
+
+                    if(nKeys>nFeatureEachCell)
+                    {
+                        nToRetain[i][j] = nFeatureEachCell;
+                        bNoMore[i][j] = false;
+                    }
+                    else
+                    {
+                        nToRetain[i][j] = nKeys;
+                        nToDistribute += nFeatureEachCell-nKeys;
+                        bNoMore[i][j] = true;
+                        nNoMore++;
+                    }
+                }
+            }
+
+            while(nToDistribute>0 && nNoMore<nCells)
+            {
+                int nNewFeaturesCell = nFeatureEachCell + ceil((float)nToDistribute/(nCells-nNoMore));
+                nToDistribute = 0;
+
+                for(int i=0; i< nRows; i++)
+                {
+                    for(int j=0; j<nCols; j++)
+                    {
+                        if(!bNoMore[i][j])
+                        {
+                            if(nTotal[i][j]>nNewFeaturesCell)
+                            {
+                                nToRetain[i][j] = nNewFeaturesCell;
+                                bNoMore[i][j] = false;
+                            }
+                            else
+                            {
+                                nToRetain[i][j] = nTotal[i][j];
+                                nToDistribute += nNewFeaturesCell-nTotal[i][j];
+                                bNoMore[i][j] = true;
+                                nNoMore++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            keypoints.reserve(nDesiredFeatures*2);
+
+            for(int i=0; i<nRows; i++)
+            {
+                for(int j=0; j<nCols; j++)
+                {
+                    vector<cv::KeyPoint> &keysCell = cellKeyPoints[i][j];
+                    cv::KeyPointsFilter::retainBest(keysCell,nToRetain[i][j]);
+                    if((int)keysCell.size()>nToRetain[i][j])
+                        keysCell.resize(nToRetain[i][j]);
+
+                    for(size_t k=0, kend=keysCell.size(); k<kend; k++)
+                    {
+                        keysCell[k].pt.x+=j*wCell;
+                        keysCell[k].pt.y+=i*hCell;
+                        keysCell[k].size = 15;
+                        keypoints.push_back(keysCell[k]);
+                    }
+                }
+            }
+
+            //排除提取到跟踪的特征点
+            for(auto& k:keypoints){
+                if(forw_pts.empty()){
+                    vKeyPoints = keypoints;
+                }
+                else{
+                    auto it = forw_pts.begin();
+                    for(;it!=forw_pts.end();it++){
+                        if(norm(*it - k.pt)<30) //追踪到的点半径为30的方位内不提取新的特征点
+                            break;
+                    }
+                    if(it == forw_pts.end())
+                        vKeyPoints.push_back(k);
+                }
+            }
+
+            if((int)vKeyPoints.size()>nDesiredFeatures)
+            {
+                cv::KeyPointsFilter::retainBest(vKeyPoints,nDesiredFeatures);
+                vKeyPoints.resize(nDesiredFeatures);
+            }
+        } else
+            n_pts.clear();
+
+
+#endif
         addPoints();
         //ROS_DEBUG("selectFeature costs: %fms", t_a.toc());
+#ifdef harris
+        for (auto &p : n_pts) {
+            forw_pts.push_back(p);
+            ids.push_back(-1);
+            track_cnt.push_back(1);
+        }
+#else
+        for (auto &p : vKeyPoints) {
+            forw_pts.push_back(p.pt);
+            ids.push_back(-1);
+            track_cnt.push_back(1);
+        }
+#endif
     }
+    ////////////////end//////////////////////
     prev_img = cur_img;
     prev_pts = cur_pts;
     prev_un_pts = cur_un_pts;
@@ -164,6 +340,8 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
     cur_pts = forw_pts;
     undistortedPoints();
     prev_time = cur_time;
+    keypoints.clear();
+    vKeyPoints.clear();
 }
 
 void FeatureTracker::rejectWithF()

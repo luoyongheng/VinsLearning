@@ -2,12 +2,22 @@
 
 #include <cstdio>
 #include <iostream>
+#include <vector>
 #include <queue>
 #include <execinfo.h>
 #include <csignal>
 
 #include <opencv2/opencv.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv/cv.hpp>
+
 #include <eigen3/Eigen/Dense>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 #include "camodocal/camera_models/CameraFactory.h"
 #include "camodocal/camera_models/CataCamera.h"
@@ -60,6 +70,12 @@ class FeatureTracker
     camodocal::CameraPtr m_camera;
     double cur_time;
     double prev_time;
+
+    //add
+    int iniThFAST = 20;
+    int minThFAST = 7;
+    vector<cv::KeyPoint> keypoints;
+    vector<cv::KeyPoint> vKeyPoints;
 
     static int n_id;
 };
