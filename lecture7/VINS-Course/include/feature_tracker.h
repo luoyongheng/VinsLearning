@@ -76,6 +76,7 @@ class FeatureTracker
     int minThFAST = 7;
     vector<cv::KeyPoint> keypoints;
     vector<cv::KeyPoint> vKeyPoints;
+    int cnt=0;
 
     static int n_id;
 };

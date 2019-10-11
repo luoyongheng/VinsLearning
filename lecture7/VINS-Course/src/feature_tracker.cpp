@@ -82,6 +82,7 @@ void FeatureTracker::addPoints()
 
 void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
 {
+    //cnt++;
     cv::Mat img;
     TicToc t_r;
     cur_time = _cur_time;
@@ -167,6 +168,7 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
         const int nDesiredFeatures = MAX_CNT - forw_pts.size();
         if(nDesiredFeatures>0)
         {
+            //cout<<"-------using fast-----------"<<endl;
             const int nCols = int(COL/W);//21
             const int nRows = int(ROW/W);//16
             const int nCells = nCols*nRows;
@@ -311,12 +313,25 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
                 cv::KeyPointsFilter::retainBest(vKeyPoints,nDesiredFeatures);
                 vKeyPoints.resize(nDesiredFeatures);
             }
+//        } else if(nDesiredFeatures>0) {
+//            cout<<"=============using harris============="<<endl;
+//            setMask();//非极大值抑制？？
+//            if (nDesiredFeatures > 0)
+//            {
+//                if(mask.empty())
+//                    cout << "mask is empty " << endl;
+//                if (mask.type() != CV_8UC1)
+//                    cout << "mask type wrong " << endl;
+//                if (mask.size() != forw_img.size())
+//                    cout << "wrong size " << endl;
+//                cv::goodFeaturesToTrack(forw_img, n_pts, nDesiredFeatures, 0.01, MIN_DIST, mask);
+//            }
         } else
             n_pts.clear();
 
 
 #endif
-        addPoints();
+        //addPoints();
         //ROS_DEBUG("selectFeature costs: %fms", t_a.toc());
 #ifdef harris
         for (auto &p : n_pts) {
@@ -325,6 +340,14 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
             track_cnt.push_back(1);
         }
 #else
+        if(!n_pts.empty()){
+            for (auto &p : n_pts) {
+                forw_pts.push_back(p);
+                ids.push_back(-1);
+                track_cnt.push_back(1);
+            }
+        }
+        n_pts.clear();
         for (auto &p : vKeyPoints) {
             forw_pts.push_back(p.pt);
             ids.push_back(-1);
